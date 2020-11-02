@@ -1,14 +1,19 @@
 
-module cpu(clk, reset,s, load, in, out, N, V, Z, w);
-input clk, reset, s, load;
-input [15:0] in;
+module cpu(clk, reset, in, out, N, V, Z, w, mem_cmd,mem_addr);
+input clk, reset; //s,load
+input [15:0] in; //read_data
 output [15:0] out;
 output N, V, Z, w;
+output [1:0] mem_cmd;
 wire [15:0] instruction_out;
-RegWithLoad #(16) instructionReg(in, load, clk, instruction_out);//REg with load enabled for instruction decoder
+wire  reset_pc, load_pc, load_addr, addr_sel,  load_ir;
+wire   [1:0] mem_cmd;
+output [8:0] mem_addr;
+RegWithLoad #(16) instructionReg(in, load_ir, clk, instruction_out);//REg with load enabled for instruction decoder
 
 wire [15:0]sximm8, mdata, datapath_out, sximm5;
-wire [7:0] PC;
+wire [8:0] PC;
+wire [7:0] PC_DP=PC[7:0];
 wire [2:0] writenum, readnum, opcode,nsel,Z_out;
 wire [1:0] ALUop,op,shift,vsel;
 wire loada,loadb, asel, loadc, loads, write, bsel;
@@ -37,7 +42,7 @@ datapath DP(  clk         ,
 		
 		mdata       ,
 		sximm8      ,
-		PC          ,
+		PC_DP          ,
 		sximm5      
                 );
 //instantiate FSM
@@ -47,7 +52,7 @@ FSM controller
 	opcode,
 	op,
 	ALUop,
-	s,
+	//s,
 	reset,
 	loada,
 	loadb,
@@ -58,15 +63,24 @@ FSM controller
 	w   ,
 	asel,
 	bsel,
-	loads
+	loads, 
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	reset_pc,  //for PC
+	load_pc,   //for PC
+	load_addr,
+	addr_sel,
+	mem_cmd,
+	load_ir
 );
+wire [8:0] data_addressIN = datapath_out[8:0];
+Program_Counter pc(reset_pc, load_pc ,PC, clk);
+instruct_address adressREG(PC,data_addressIN,load_addr,addr_sel, mem_addr, clk); //output mem_addr
 assign out=datapath_out; //out is C out
 assign N=Z_out[0];       //negative
 assign V=Z_out[1];       //overflow
 assign Z=Z_out[2];       //zero
 //not used signals
 assign sximm5={16{1'b0}};  
-assign PC={8{1'b0}};
 assign mdata={16{1'b0}};
 endmodule
 

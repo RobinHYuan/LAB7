@@ -1,3 +1,6 @@
+`define MREAD 2'b10
+`define MWRITE 2'b01
+`define Mdefault 2'b00
 
 module InputMux(Mdata,Sximm8,pc,Datapath_out,Vsel,Datapath_in); 
 // This is a dedicated mux module to feed input into the Regfile inside datapath; select signal is in binary
@@ -68,31 +71,44 @@ default:{readnum,writenum}=6'bxxx_xxx;
 endcase
 endmodule
 
+module Program_Counter(reset_pc, load_pc ,PC, clk); //This module also contains the PC multiplexer 
+input  reset_pc, load_pc, clk;
+output [8:0] PC;
+wire   [8:0] next_pc;
+assign next_pc=(reset_pc)? 0: (PC+9'b0000_0000_1);
+RegWithLoad #(9) pc_reg(next_pc, load_pc, clk, PC);
+endmodule
 
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-module Muxtb();//testbench
+module instruct_address(PC,datapath_out,load_addr,addr_sel, mem_addr, clk);
+input [8:0] datapath_out, PC;
+input load_addr, addr_sel, clk;
+output [8:0] mem_addr;
+wire [8:0] Data_out;
+assign mem_addr=(addr_sel) ? PC:Data_out;
+RegWithLoad #(9) data_addr(datapath_out, load_addr, clk, Data_out);
+endmodule
 
-reg[15:0] mdata, sximm8, datapath_out;
-reg [7:0] PC;
-reg [1:0] vsel;
-wire [15:0] datapath_in;
 
-InputMux DUT(mdata,sximm8,PC,datapath_out,vsel,datapath_in);
-initial begin
-mdata=0;
-sximm8=1;
-datapath_out={16{1'b1}};
-PC={8{1'b1}};
+module read_writeRAM(mem_addr,mem_cmd,read_data,datapath_out,write_data,dout,clk,read_address,write_address,write);
+input [8:0] mem_addr;
+input [15:0] dout, datapath_out;
+input clk;
+input [1:0]mem_cmd;
+output [15:0] read_data, write_data;
+output [7:0] read_address,write_address;
+output write;
 
-#5;
-vsel=0;
-#5;
-vsel=1;
-#5;
-vsel=2'b10;
-#5;
-vsel=2'b11;
-#5;
-end
+wire read_condition1= (mem_cmd==`MREAD) ? 1:0;
+wire read_condition2=  (mem_addr[8]==0) ? 1:0;
 
+wire write_condition1= (mem_cmd==`MWRITE) ? 1:0;
+wire write_condition2=  (mem_addr[8]==1) ? 1:0;
+
+assign write_address=mem_addr[7:0];
+assign read_address=mem_addr[7:0];
+
+assign write=write_condition1&write_condition2;
+
+assign write_data=datapath_out;
+assign read_data=((read_condition1&read_condition2)==1) ? dout: {16{1'bz}};
 endmodule
