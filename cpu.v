@@ -1,7 +1,7 @@
 
 module cpu(clk, reset, in, out, N, V, Z, w, mem_cmd,mem_addr);
 input clk, reset; //s,load
-input [15:0] in; //read_data
+input [15:0] in; //read_data that goes into instruction reg
 output [15:0] out;
 output N, V, Z, w;
 output [1:0] mem_cmd;
@@ -80,8 +80,8 @@ assign N=Z_out[0];       //negative
 assign V=Z_out[1];       //overflow
 assign Z=Z_out[2];       //zero
 //not used signals
-assign sximm5={16{1'b0}};  
-assign mdata={16{1'b0}};
+assign sximm5=(instruction_out[4]==1) ?({11'sb1111_1111_111,instruction_out[4:0]}):({11'sb0000_0000_000,instruction_out[4:0]});
+assign mdata=in;
 endmodule
 
 

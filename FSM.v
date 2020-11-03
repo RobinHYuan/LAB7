@@ -35,7 +35,7 @@ output [2:0] nsel;
 output  reset_pc,load_pc,load_addr,addr_sel,load_ir;
 output [1:0] mem_cmd;
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> END
-reg[4:0] current_state;
+reg[5:0] current_state;
 reg loada, loadb, loadc, write, w,asel,bsel,loads;
 reg [1:0] vsel;
 reg [2:0] nsel;
@@ -48,33 +48,49 @@ reg [1:0] mem_cmd;
 `define MWRITE 2'b01
 `define Mdefault 2'b00
 
-`define Wait        5'b0_0000
-`define decode      5'b0_0001
-`define decode_move 5'b0_0010
-`define decode_ALU  5'b0_0011
-`define moveA1      5'b0_0100
-`define moveB1      5'b0_0101
-`define moveB2      5'b0_0110
-`define moveB3      5'b0_0111
-`define ADD_1       5'b0_1000
-`define CMP_1	    5'b0_1001
-`define AND_1       5'b0_1010
-`define MVN_1       5'b0_1011
-`define ADD_2       5'b0_1100
-`define ADD_3       5'b0_1101
-`define ADD_4       5'b0_1110
+`define Wait        6'b00_0000
+`define decode      6'b00_0001
+`define decode_move 6'b00_0010
+`define decode_ALU  6'b00_0011
+`define moveA1      6'b00_0100
+`define moveB1      6'b00_0101
+`define moveB2      6'b00_0110
+`define moveB3      6'b00_0111
+`define ADD_1       6'b00_1000
+`define CMP_1	    6'b00_1001
+`define AND_1       6'b00_1010
+`define MVN_1       6'b00_1011
+`define ADD_2       6'b00_1100
+`define ADD_3       6'b00_1101
+`define ADD_4       6'b00_1110
 
-`define AND_2       5'b1_0000
-`define AND_3       5'b1_0001
-`define AND_4       5'b1_0010
-`define MVN_2       5'b1_0011
-`define MVN_3       5'b1_0100
-`define CMP_2	    5'b1_0101
-`define CMP_3	    5'b1_0110
+`define AND_2       6'b01_0000
+`define AND_3       6'b01_0001
+`define AND_4       6'b01_0010
+`define MVN_2       6'b01_0011
+`define MVN_3       6'b01_0100
+`define CMP_2	    6'b01_0101
+`define CMP_3	    6'b01_0110
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> BEGIN
-`define IF1         5'b1_0111
-`define IF2	    5'b1_1000
-`define UpdatePC    5'b1_1001
+`define IF1         6'b01_0111
+`define IF2	    6'b01_1000
+`define UpdatePC    6'b01_1001
+
+`define  LDR1       6'b01_1010
+`define  STR1       6'b01_1011
+`define  HALT1      6'b01_1100
+
+`define  LDR2       6'b01_1101
+`define  LDR3       6'b01_1110
+`define  LDR4	    6'b01_1111
+`define  LDR5       6'b10_0000
+
+`define  STR2       6'b10_0001
+`define  STR3       6'b10_0010
+`define  STR4	    6'b10_0011
+`define  STR5       6'b10_0100
+`define  STR6       6'b10_0101
+
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> END
 always@(posedge clk)begin// state machine 
 //macros are used to better illustrate the traisitions between states
@@ -95,7 +111,10 @@ if(reset)
 		
 		`decode:if(opcode==3'b110)      current_state=`decode_move;
 			else if(opcode==3'b101) current_state=`decode_ALU ;
-			     else current_state={5{1'bx}};
+			     else if(opcode==3'b011) current_state=`LDR1 ;
+					else if(opcode==3'b100) current_state=`STR1;
+						else if(opcode==3'b111) current_state=`HALT1;
+							else current_state={6{1'bx}};
 
 		`decode_move: if(op==2'b10)     current_state=`moveA1;
 			      else if(op==2'b00) current_state=`moveB1;
@@ -112,7 +131,7 @@ if(reset)
 		`moveB3: current_state=`IF1;
 
 	        `ADD_1:  current_state=`ADD_2;
-		`ADD_2:  current_state=`ADD_3;		 //At ADD_2, we want to copy Rm in
+		`ADD_2:  current_state=`ADD_3; //At ADD_2, we want to copy Rm in
 		`ADD_3:  current_state=`ADD_4; //At ADD_3, we want to compute and save the result at Register C  
 		`ADD_4:  current_state=`IF1; //At ADD_4, we want to wtite the result into Rd and then go back to wait state
 		
@@ -129,6 +148,21 @@ if(reset)
 		`CMP_2:  current_state=`CMP_3;//load rm tob at cmp_2
 		`CMP_3:  current_state=`IF1;
 
+		`LDR1:   current_state=`LDR2;
+		`LDR2:   current_state=`LDR3;
+		`LDR3:   current_state=`LDR4;
+		`LDR4:   current_state=`LDR5;
+		`LDR5:   current_state=`IF1;
+
+		
+		`STR1:   current_state=`STR2;
+		`STR2:   current_state=`STR3;
+		`STR3:   current_state=`STR4;
+		`STR4:   current_state=`STR5;
+		`STR5:   current_state=`STR6;
+		`STR6:   current_state=`IF1;
+		
+		`HALT1:   current_state=`HALT1;
 		default: current_state={5{1'bx}};
 			
 		endcase
@@ -162,11 +196,25 @@ case(current_state)       // output the correct signals depending on the state w
 `CMP_2:{loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}= {13'b010_0_00_010_0_00_0,5'b00000,`Mdefault};//read Rm write nothing
 `CMP_3:{loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}= {13'b001_0_00_000_0_00_1,5'b00000,`Mdefault};
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-`IF1:     {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={13'b000_0_00_000_1_00_0,5'b00110,`MREAD}; // 
-`IF2:     {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={13'b000_0_00_000_1_00_0,5'b00111,`MREAD}; //read dout from the RAM, and write it into instruction REG;
-`UpdatePC:{loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={13'b000_0_00_000_1_00_0,5'b01000,`Mdefault};//load_pc is on so that it can remeber the next instruction;
+`IF1:     {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={13'b000_0_00_000_0_00_0,5'b00110,`MREAD}; // 
+`IF2:     {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={13'b000_0_00_000_0_00_0,5'b00111,`MREAD}; //read dout from the RAM, and write it into instruction REG;
+`UpdatePC:{loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={13'b000_0_00_000_0_00_0,5'b01000,`Mdefault};//load_pc is on so that it can remeber the next instruction;
+
+`LDR1:    {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={13'b100_0_00_101_0_00_0,5'b00000,`Mdefault};//read Rn to Reg A
+`LDR2:	  {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={13'b001_0_00_000_0_01_0,5'b00000,`Mdefault};//compute and load the result into Reg C
+`LDR3: 	  {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={{13{1'b0}},5'b00100, `Mdefault};
+`LDR4:	  {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={{13{1'b0}},5'b00000, `MREAD};
+`LDR5:    {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={13'b000_1_11_100_0_00_0,5'b00000,`MREAD};
 
 
+`STR1:    {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={13'b100_0_00_101_0_00_0,5'b00000,`Mdefault};//read Rn to Reg A
+`STR2:	  {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={13'b001_0_00_000_0_01_0,5'b00000,`Mdefault};//store ALU result into regC
+`STR3: 	  {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={{13{1'b0}},5'b00100, `Mdefault};//store datapathout into address reg
+`STR4:    {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={13'b010_0_00_110_0_10_0,5'b00000,`Mdefault};//load Rd to reg B
+`STR5:	  {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={13'b001_0_00_000_0_10_0,5'b00000,`Mdefault};
+`STR6:	  {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={{13{1'b0}},5'b00000,`MWRITE};
+
+`HALT1:    {loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={20{1'b0}};
 default:{loada,loadb,loadc,write,vsel,nsel,w,asel,bsel,loads,   reset_pc,load_pc,load_addr,addr_sel,load_ir,mem_cmd}={{3{1'bx}},1'b0,{16{1'bx}}};
 endcase
 end

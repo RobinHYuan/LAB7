@@ -67,6 +67,7 @@ case (nsel)
 3'b010: {readnum,writenum}={Rm,3'bxxx};
 3'b100: {writenum,readnum}={Rd,3'bxxx};
 3'b101: {readnum,writenum}={Rn,3'bxxx};
+3'b110: {readnum,writenum}={Rd,3'bxxx};
 default:{readnum,writenum}=6'bxxx_xxx;
 endcase
 endmodule
@@ -102,7 +103,7 @@ wire read_condition1= (mem_cmd==`MREAD) ? 1:0;
 wire read_condition2=  (mem_addr[8]==0) ? 1:0;
 
 wire write_condition1= (mem_cmd==`MWRITE) ? 1:0;
-wire write_condition2=  (mem_addr[8]==1) ? 1:0;
+wire write_condition2=  (mem_addr[8]==0) ? 1:0;
 
 assign write_address=mem_addr[7:0];
 assign read_address=mem_addr[7:0];
