@@ -53,7 +53,7 @@ assign op = instruction [12:11];    //op fpr fsm
 assign ALUop= instruction [12:11];  //ALUop fpr datapath
 
 assign immediate = (instruction[7]==1) ? ({8'sb1111_1111,instruction [7:0]}): ({8'sb0000_0000,instruction [7:0]}); //sign extend the immediate oeprand
-assign shift = instruction[4:3];  //shift for datapath
+assign shift = (opcode==3'b110|opcode==3'b101) ? instruction[4:3] :0;  //shift for datapath
 assign Rn = instruction [10:8];    //register Rn
 assign Rd = instruction [7:5];     //Register Rd
 assign Rm = instruction [2:0];     //Register Rm
