@@ -8,9 +8,9 @@ input clk;
 input [7:0]  SW;
 input [8:0]  mem_addr;
 input [1:0]  mem_cmd;
-input [15:0] read_data;
+output [15:0] read_data;
 
-output [15:0] write_data;
+input [15:0] write_data;
 output [7:0]  LEDR;
 
 wire [7:0] LEDR_in;
