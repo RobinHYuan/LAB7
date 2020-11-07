@@ -111,5 +111,6 @@ assign read_address=mem_addr[7:0];
 assign write=write_condition1&write_condition2;
 
 assign write_data=datapath_out;
-assign read_data=((read_condition1&read_condition2)==1) ? dout: {16{1'bz}};
+wire READ=read_condition1&read_condition2;
+assign read_data=(READ==1) ? dout: {16{1'bz}};
 endmodule

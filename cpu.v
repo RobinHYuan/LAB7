@@ -1,5 +1,5 @@
 
-module cpu(clk, reset, in, out, N, V, Z, w, mem_cmd,mem_addr);
+module cpu(clk, reset, in, out, N, V, Z, w, mem_cmd,mem_addr,PC);
 input clk, reset; //s,load
 input [15:0] in; //read_data that goes into instruction reg
 output [15:0] out;
@@ -10,7 +10,7 @@ wire  reset_pc, load_pc, load_addr, addr_sel,  load_ir;
 wire   [1:0] mem_cmd;
 output [8:0] mem_addr;
 RegWithLoad #(16) instructionReg(in, load_ir, clk, instruction_out);//REg with load enabled for instruction decoder
-
+output [8:0] PC;
 wire [15:0]sximm8, mdata, datapath_out, sximm5;
 wire [8:0] PC;
 wire [7:0] PC_DP=PC[7:0];

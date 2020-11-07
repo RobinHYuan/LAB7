@@ -142,7 +142,7 @@ if(reset)
 
 		`MVN_1:  current_state=`MVN_2;
 		`MVN_2:  current_state=`MVN_3;
-		`MVN_3:  current_state=`Wait;
+		`MVN_3:  current_state=`IF1;
 
 		`CMP_1:  current_state=`CMP_2; //load Rn to a at cmp_1
 		`CMP_2:  current_state=`CMP_3;//load rm tob at cmp_2

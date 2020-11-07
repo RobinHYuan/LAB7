@@ -11,13 +11,19 @@ input [1:0]  mem_cmd;
 output [15:0] read_data;
 
 input [15:0] write_data;
-output [7:0]  LEDR;
+output [9:0]  LEDR;
 
-wire [7:0] LEDR_in;
+wire [9:0] LEDR_in;
+reg [15:0] read_data;
 
-assign read_data[15:8] = ((mem_addr==9'h140)&(mem_cmd==`MREAD)) ? 8'h00: {8{1'bz}};
-assign read_data[7:0]  = ((mem_addr==9'h140)&(mem_cmd==`MREAD)) ? SW : {8{1'bz}};
+//assign read_data[15:8] = ((mem_addr==9'h140)&(mem_cmd==`MREAD)) ? 16'b0: {8{1'bz}};
+//
+always @(*)
+case({mem_addr,mem_cmd})
+{9'h140,`MREAD}: read_data={{8{1'b0}},SW};
+default: read_data={16{1'bz}};
+endcase  
 
-assign LEDR_in=((mem_addr==9'h100)&(mem_cmd==`MWRITE)) ? write_data:{8{1'b0}};
-RegWithLoad #(8) LED(LEDR_in, clk, ((mem_addr==9'h100)&(mem_cmd==`MWRITE)),LEDR );
+assign LEDR_in=((mem_addr==9'h100)&(mem_cmd==`MWRITE)) ? {2'b0,{write_data[7:0]}}:{10{1'b0}};
+RegWithLoad #(10) LED(LEDR_in, ((mem_addr==9'h100)&(mem_cmd==`MWRITE)),clk,LEDR );
 endmodule
